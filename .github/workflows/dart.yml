@@ -19,7 +19,18 @@ jobs:
 
       - run: pod repo update
         working-directory: ios
-
+      - name: Clean
+        run: flutter clean
+      
+      - name: Get Packages
+        run: flutter pub get
+      
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod deintegrate
+          pod repo update
+          pod install
       - run: flutter build ios --release --no-codesign
 
       - run: mkdir Payload
