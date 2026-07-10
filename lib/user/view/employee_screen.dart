@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'package:confetti/confetti.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -9,8 +11,12 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:joizone/chatbot/chatbot_screen.dart';
 import 'package:joizone/user/view/notification_screen.dart';
+import 'package:joizone/user/view/update_user_shift_screen.dart';
 import 'package:joizone/user/view/user_live_location_screen.dart';
 import 'package:joizone/user/view/userid_card_widget.dart';
+import 'package:joizone/user/view/users_performance_screen.dart';
+import 'package:joizone/user/view/video_dialog.dart';
+import 'package:joizone/user/view/video_dialogtl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -50,9 +56,13 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   DateTime _currentTime = DateTime.now();
   //user permission allow
   NotificationService notificationService = NotificationService();
+  late ConfettiController _controllerTopCenter;
   @override
   void initState() {
+    _controllerTopCenter =
+        ConfettiController(duration: const Duration(seconds: 5));
     super.initState();
+    _controllerTopCenter.play();
     notificationService.requestNotificationPermission();
     notificationService.getDeviceToken();
     //FCMService.firebaseInit();
@@ -73,7 +83,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       });
     });
   }
-
   @override
   void dispose() {
     autoCloseTimer?.cancel();
@@ -85,6 +94,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     gpsTimer = null;
     connectivitySub = null;
     _timer = null;
+    _controllerTopCenter.dispose();
   }
 
 
@@ -774,7 +784,19 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         "${secs.toString().padLeft(2, '0')}";
   }
   DateTime? breakStartTime;
+  Future<bool> checkFeatureAccess() async {
+    final response = await http.post(
+      Uri.parse("http://15.206.209.30/attendance/check_feature_access.php"),
+      body: {
+        "tl_id": widget.userModel.uid.toString(),
+        "feature_name": "UpdateUserShiftScreen",
+      },
+    );
 
+    final json = jsonDecode(response.body);
+
+    return json["enabled"] == 1;
+  }
   @override
   Widget build(BuildContext context) {
     final String timeString =
@@ -786,29 +808,59 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         backgroundColor: Colors.blue,
         title: const Text("Dashboard",style: TextStyle(color: Colors.white,fontSize: 22,fontFamily: 'impact'),),
         actions: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.white,
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.chat,
-                    color: Colors.blue,
-                  ),
-                  onPressed: () {
-                    Get.to(
-                          () => ChatbotScreen(
-                        cid: widget.userModel.cid,
-                        uid: widget.userModel.uid,
-                            name: widget.userModel.fullName,
-                            branchName: widget.userModel.branchName,
-                      ),
-                    );
-                  },
-                ),
+          // Stack(
+          //   children: [
+          //     CircleAvatar(
+          //       radius: 20,
+          //       backgroundColor: Colors.white,
+          //       child: IconButton(
+          //         icon: const Icon(
+          //           Icons.chat,
+          //           color: Colors.blue,
+          //         ),
+          //         onPressed: () {
+          //           Get.to(
+          //                 () => ChatbotScreen(
+          //               cid: widget.userModel.cid,
+          //               uid: widget.userModel.uid,
+          //                   name: widget.userModel.fullName,
+          //                   branchName: widget.userModel.branchName,
+          //             ),
+          //           );
+          //         },
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          widget.userModel.departmentName == "Users"?
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.white,
+            child: IconButton(
+              icon: const Icon(Icons.play_circle,color: Colors.blue,),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const VideoDialog(),
+                );
+              },
+            ),
+          ):
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.white,
+            child: IconButton(
+              icon: const Icon(
+                Icons.play_circle_outline,
+                color: Colors.blue,
               ),
-            ],
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const VideoDialogtl(),
+                );
+              },
+            ),
           ),
           SizedBox(width: 5,),
           Stack(
@@ -944,10 +996,12 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
             radius: 20,
                 backgroundColor: Colors.white,
                 child: IconButton(
+
                             icon: const Icon(Icons.logout,color: Colors.blue,),
                             onPressed: () => showLogoutDialog(context),
                           ),
               ): SizedBox.shrink(),
+
           SizedBox(width: 10,)
         ],
       ),
@@ -955,7 +1009,21 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
+
             employeeInfoCard(),
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _controllerTopCenter,
+                blastDirectionality: BlastDirectionality.directional,
+                blastDirection: pi / 2, // Downward
+                emissionFrequency: 0.08,
+                numberOfParticles: 55,
+                maxBlastForce: 10,
+                minBlastForce: 5,
+                gravity: 0.4,
+              ),
+            ),
             const SizedBox(height: 20),
             Expanded(child: dashboardGrid()),
           ],
@@ -966,32 +1034,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 👇 Time Row
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.center,
-            //   children: [
-            //     Text(
-            //       "Current Time : ".toUpperCase(),
-            //       style: const TextStyle(
-            //         fontSize: 10,
-            //         fontWeight: FontWeight.bold,
-            //         color: Colors.black87,
-            //       ),
-            //     ),
-            //     Text(
-            //       timeString,
-            //       style: const TextStyle(
-            //         fontSize: 10,
-            //         fontWeight: FontWeight.normal,
-            //         color: Colors.black87,
-            //       ),
-            //     ),
-            //     const SizedBox(width: 5),
-            //     Icon(Icons.access_time, size: 10, color: Colors.black),
-            //   ],
-            // ),
-
-            // 👇 Version Row
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1004,7 +1046,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                   ),
                 ),
                 Text(
-                  "1.0.5",
+                  "1.0.1",
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.normal,
@@ -1068,9 +1110,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   void startAutoCloseTimer() {
     autoCloseTimer?.cancel();
     secondsLeft = 45;
-
     late void Function(void Function()) updateDialog;
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1117,93 +1157,148 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         );
       },
     );
-
     /// ✅ TIMER
     autoCloseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
-
       if (secondsLeft <= 0) {
         timer.cancel();
-
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
-
         return;
       }
-
       secondsLeft--;
-
       /// 🔥 UPDATE UI
       updateDialog(() {});
     });
   }
 
   Widget dashboardGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.4,
-      children: [
-        dashboardBox(
-          "Punch In / Out",
-          Icons.fingerprint,
-              () async {
-            final result = await Get.to(
-                  () => PunchInOutScreen(userModel: widget.userModel),
-            );
 
-            if (result == true) {
-              startAutoCloseTimer(); // 🔥 show countdown
-            }
-          },
-        ),
-        dashboardBox(
-          "My Attendance",
-          Icons.event_available,
-              () => Get.to(() => AttendanceScreen(
+    List<Widget> items = [];
+
+    items.add(
+      dashboardBox(
+        "Punch In / Out",
+        Icons.fingerprint,
+            () async {
+          final result = await Get.to(
+                () => PunchInOutScreen(userModel: widget.userModel),
+          );
+
+          if (result == true) {
+            startAutoCloseTimer();
+          }
+        },
+      ),
+    );
+
+    items.add(
+      dashboardBox(
+        "My Attendance",
+        Icons.event_available,
+            () => Get.to(
+              () => AttendanceScreen(
             cid: widget.userModel.cid,
             uid: widget.userModel.uid,
-          )),
+          ),
         ),
-        (attendanceId == null || widget.userModel.departmentName == "Team Leader")
-            ? SizedBox.shrink()
-            : dashboardBox(
+      ),
+    );
+    items.add(
+      dashboardBox(
+        "User Performance",
+        Icons.data_exploration,
+            () => Get.to(
+              () => UsersPerformanceScreen(branchName: widget.userModel.branchName,cid: widget.userModel.cid,),
+
+        ),
+      ),
+    );
+
+    if (attendanceId != null &&
+        widget.userModel.departmentName != "Team Leader") {
+
+      items.add(
+        dashboardBox(
           "Client Form",
           Icons.flight,
-              () => Get.to(() => AirportFormScreen(userModel: widget.userModel)),
+              () => Get.to(
+                () => AirportFormScreen(userModel: widget.userModel),
+          ),
         ),
+      );
 
-        (attendanceId == null || widget.userModel.departmentName == "Team Leader")
-            ? SizedBox.shrink()
-            : dashboardBox(
+      items.add(
+        dashboardBox(
           "Submitted Form",
           Icons.description,
               () => widget.userModel.departmentName == "Users"
               ? Get.to(() => SubmitFormScreen(userModel: widget.userModel))
               : Get.to(() => GetReportKioskScreen(userModel: widget.userModel)),
         ),
-        widget.userModel.departmentName == "Users"
-            ? SizedBox.shrink()
-            : dashboardBox(
+      );
+
+    }
+
+    if (widget.userModel.departmentName != "Users") {
+
+      items.add(
+        dashboardBox(
           "User Attendance",
           Icons.event_available,
-              () => Get.to(() => OfficeAttendanceScreen(
-            officeName: widget.userModel.branchName,
-          )),
+              () => Get.to(
+                () => OfficeAttendanceScreen(
+              officeName: widget.userModel.branchName,
+            ),
+          ),
         ),
-        widget.userModel.departmentName=="Users"?SizedBox.shrink():dashboardBox(
+      );
+
+      items.add(
+        dashboardBox(
           "Client Submitted Form",
           Icons.event_available,
-              () => Get.to(() => GetReportKioskScreen(
-            userModel: widget.userModel,
-          )),
+              () => Get.to(
+                () => GetReportKioskScreen(userModel: widget.userModel),
+          ),
         ),
+      );
+      items.add(
+        dashboardBox(
+          "Update User Shift",
+          Icons.access_time,
+              () async {
+            bool isAllowed = await checkFeatureAccess();
 
-      ],
+            if (isAllowed) {
+              Get.to(
+                    () => UpdateUserShiftScreen(
+                  cid: widget.userModel.cid,
+                  branchName: widget.userModel.branchName,
+                ),
+              );
+            } else {
+              Get.defaultDialog(
+                title: "Permission Denied",
+                middleText:
+                "Update User Shift feature is currently disabled by Admin.",
+                textConfirm: "OK",
+                onConfirm: () => Get.back(),
+              );
+            }
+          },
+        ),
+      );
+    }
+
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 1.4,
+      children: items,
     );
-
   }
 
   Widget dashboardBox(

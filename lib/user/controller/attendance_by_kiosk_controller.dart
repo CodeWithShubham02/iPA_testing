@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../model/attendance_response_model.dart';
-import '../model/attendance_record_model.dart';
 
 class AttendanceController {
-  static const String _url =
+  static const String url =
       "http://15.206.209.30/attendance/fetch_attendance_by_kiosk.php";
 
   static Future<List<Map<String, dynamic>>> fetchAttendance({
@@ -12,8 +10,9 @@ class AttendanceController {
     required String fromDate,
     required String toDate,
   }) async {
-    final res = await http.post(
-      Uri.parse(_url),
+
+    final response = await http.post(
+      Uri.parse(url),
       body: {
         "office_name": officeName,
         "from_date": fromDate,
@@ -21,9 +20,12 @@ class AttendanceController {
       },
     );
 
-    final json = jsonDecode(res.body);
-    final response = AttendanceResponse.fromJson(json);
+    final jsonData = jsonDecode(response.body);
 
-    return response.data.map((e) => e.toUiMap()).toList();
+    if (jsonData["status"] == true) {
+      return List<Map<String, dynamic>>.from(jsonData["data"]);
+    }
+
+    return [];
   }
 }

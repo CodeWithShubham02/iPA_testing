@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../controller/attendance_by_kiosk_controller.dart';
 import '../controller/attendance_controller.dart';
-
+import 'package:http/http.dart' as http;
 class OfficeAttendanceScreen extends StatefulWidget {
   final String officeName;
 
@@ -33,8 +35,8 @@ class _OfficeAttendanceScreenState extends State<OfficeAttendanceScreen> {
 
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(now.year - 2),
-      lastDate: DateTime(now.year + 1),
+      firstDate: DateTime(now.year, now.month - 2, now.day), // Previous 2 months
+      lastDate: now.add(const Duration(days: 6)), // Next 6 days
       initialDateRange: selectedRange,
     );
 
@@ -63,6 +65,10 @@ class _OfficeAttendanceScreenState extends State<OfficeAttendanceScreen> {
       );
 
       filteredRecords = List.from(attendanceRecords);
+      print("==========================================");
+      print(attendanceRecords.first);
+      print("==========================================");
+
     } catch (e) {
       debugPrint("Attendance error: $e");
     } finally {
@@ -116,6 +122,25 @@ class _OfficeAttendanceScreenState extends State<OfficeAttendanceScreen> {
       return "-";
     }
   }
+  //------------update weekly off----------
+  Future<bool> updateHoliday({
+    required String id,
+    required DateTime date,
+  }) async {
+    final response = await http.post(
+      Uri.parse("http://15.206.209.30/attendance/updateHoliday.php"),
+      body: {
+        "id": id,
+        "date": DateFormat('yyyy-MM-dd').format(date),
+      },
+    );
+
+    print(response.body);
+
+    final json = jsonDecode(response.body);
+    return json["status"] == true;
+  }
+  //----------------------------
   /// 📊 ATTENDANCE TABLE
   Widget buildAttendanceTable() {
     return Scrollbar(
@@ -138,10 +163,9 @@ class _OfficeAttendanceScreenState extends State<OfficeAttendanceScreen> {
                 width: 1,
               ),
               columns: const [
+                DataColumn(label: Text("Action")),
                 DataColumn(label: Text("Name")),
-
                 DataColumn(label: Text("Status")),
-
                 DataColumn(label: Text("Punch In")),
                 DataColumn(label: Text("Punch Out")),
                 // DataColumn(label: Text("Punch In Remark")),
@@ -150,50 +174,204 @@ class _OfficeAttendanceScreenState extends State<OfficeAttendanceScreen> {
                 DataColumn(label: Text("Out Img")),
                 DataColumn(label: Text("User Type")),
                 DataColumn(label: Text("Shift")),
+                DataColumn(label: Text("WO Date")),
 
               ],
               rows: filteredRecords.map((r) {
-                return DataRow(cells: [
-                  DataCell(Text(r['name'] ?? "-")),
+                return DataRow(
+                  cells: [
 
-                  DataCell(
-                    Text(
-                      r['status'] ?? "-",
-                      style: TextStyle(
-                        color: r['status'] == 'Present'
-                            ? Colors.green
-                            : Colors.red,
-                        fontWeight: FontWeight.bold,
+                    /// ID
+
+                    DataCell(
+                      r['status'].toString().toUpperCase() == 'HOLYDAY'
+                          ? IconButton(
+                        onPressed: () {
+                          print(r['id'].toString());
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              DateTime? selectedDate;
+
+                              return AlertDialog(
+                                title: const Text(
+                                  "Update Weekly Off",
+                                ),
+                                content: StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return Column(
+                                      mainAxisSize:
+                                      MainAxisSize.min,
+                                      children: [
+                                        ElevatedButton.icon(
+                                          onPressed: () async {
+                                            DateTime?
+                                            picked = await showDatePicker(
+                                              context:
+                                              context,
+                                              initialDate:
+                                              DateTime.now(),
+                                              firstDate:
+                                              DateTime.now(),
+                                              lastDate:
+                                              DateTime(
+                                                2050,
+                                              ),
+                                            );
+
+                                            if (picked !=
+                                                null) {
+                                              setState(() {
+                                                selectedDate =
+                                                    picked;
+                                              });
+                                            }
+                                          },
+                                          icon: const Icon(
+                                            Icons
+                                                .calendar_month,
+                                            color:   Color(0xff2563EB),
+                                          ),
+                                          label: Text(
+                                            selectedDate ==
+                                                null
+                                                ? "Select Date"
+                                                : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(
+                                          context,
+                                        ),
+                                    child: const Text(
+                                      "Cancel",
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      if (selectedDate == null) return;
+
+                                      bool success = await updateHoliday(
+                                        id: r['id'].toString(),
+                                        date: selectedDate!,
+                                      );
+
+                                      if (success) {
+                                        Navigator.pop(context);
+                                        await fetchAttendance(selectedRange!);
+                                        setState(() {});
+
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text("Weekly Off updated successfully"),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text("Update failed"),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: const Text(
+                                      "Update",
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.edit),
+                      )
+                          : const SizedBox(),
+                    ),
+
+                    /// Name
+                    DataCell(Text(r['name']?.toString() ?? "-")),
+
+                    /// Status
+                    DataCell(
+                      Text(
+                        r['status']?.toString() ?? "-",
+                        style: TextStyle(
+                          color: r['status'] == "Present"
+                              ? Colors.green
+                              : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
 
-                  DataCell(Text(formatTime(r['punchIn']?['time']))),
-                  DataCell(Text(formatTime(r['punchOut']?['time']))),
-                  DataCell(
-                    r['punchIn']?['image'] != null
-                        ? IconButton(
-                      icon: const Icon(Icons.image),
-                      onPressed: () =>
-                          showImage(r['punchIn']['image']),
-                    )
-                        : const Text("-"),
-                  ),
-                  DataCell(
-                    r['punchOut']?['image'] != null
-                        ? IconButton(
-                      icon: const Icon(Icons.image),
-                      onPressed: () =>
-                          showImage(r['punchOut']['image']),
-                    )
-                        : const Text("-"),
-                  ),
-                  DataCell(Text(r['department'] ?? "-")),
-                  DataCell(
-                    Text("${r['shiftStart']} - ${r['shiftEnd']}"),
-                  ),
+                    /// Punch In
+                    DataCell(
+                      Text(
+                        formatTime(
+                          r['punch_in_time']?.toString(),
+                        ),
+                      ),
+                    ),
 
-                ]);
+                    /// Punch Out
+                    DataCell(
+                      Text(
+                        formatTime(
+                          r['punch_out_time']?.toString(),
+                        ),
+                      ),
+                    ),
+
+                    /// Punch In Image
+                    DataCell(
+                      r['punch_in_image'] != null &&
+                          r['punch_in_image'].toString().isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.image),
+                        onPressed: () => showImage(
+                          r['punch_in_image'].toString(),
+                        ),
+                      )
+                          : const Text("-"),
+                    ),
+
+                    /// Punch Out Image
+                    DataCell(
+                      r['punch_out_image'] != null &&
+                          r['punch_out_image'].toString().isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.image),
+                        onPressed: () => showImage(
+                          r['punch_out_image'].toString(),
+                        ),
+                      )
+                          : const Text("-"),
+                    ),
+
+                    /// Department
+                    DataCell(
+                      Text(r['department']?.toString() ?? "-"),
+                    ),
+
+                    /// Shift
+                    DataCell(
+                      Text(
+                        "${r['shift_start'] ?? "-"} - ${r['shift_end'] ?? "-"}",
+                      ),
+                    ),
+                    DataCell(
+                      Text(r['roster_date']?.toString() ?? "-"),
+                    ),
+                  ],
+                );
               }).toList(),
             ),
           ),

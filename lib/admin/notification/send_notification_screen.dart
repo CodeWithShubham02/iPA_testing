@@ -57,7 +57,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
                     TextField(
                       controller: searchController,
                       decoration: const InputDecoration(
-                        hintText: "Search Employee",
+                        hintText: "Search Employee - name, branch, userid",
                         prefixIcon: Icon(Icons.search),
                       ),
                       onChanged: (value) {
@@ -72,11 +72,15 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
                                 ?.toString()
                                 .toLowerCase() ??
                                 '';
+                            final empBranch = user['branch_name']
+                                ?.toString()
+                                .toLowerCase() ??
+                                '';
 
                             return name.contains(
                                 value.toLowerCase()) ||
                                 empId.contains(
-                                    value.toLowerCase());
+                                    value.toLowerCase())|| empBranch.contains(value.toLowerCase());
                           }).toList();
                         });
                       },
@@ -203,6 +207,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
         String token = user['user_token'] ?? '';
         debugPrint("=======User Token=======");
         debugPrint(token);
+
         if (token.isNotEmpty) {
           bool sent = await sendFcmMessageWithOAuth(
             token,
@@ -211,8 +216,11 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
           );
 
           debugPrint("=======Send Notification Status=======");
-          debugPrint(sent as String?);
-
+          debugPrint(sent.toString());
+          print("cid : ${user['cid']} (${user['cid'].runtimeType})");
+          print("uid : ${user['uid']} (${user['uid'].runtimeType})");
+          print("full_name : ${user['full_name']} (${user['full_name'].runtimeType})");
+          print("branch_name : ${user['branch_name']} (${user['branch_name'].runtimeType})");
           if (sent) {
             await saveNotification(
               cid: user['cid'].toString(),
@@ -317,7 +325,18 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xff2563EB),
+                Color(0xff1D4ED8),
+              ],
+            ),
+          ),
+        ),
+        backgroundColor: Color(0xff2563EB),
         title: Text("Send Notification",style: TextStyle(color: Colors.white),),
         iconTheme: IconThemeData(color: Colors.white),
       ),
@@ -363,7 +382,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: Icon(Icons.title, color: Colors.blue),
+                  prefixIcon: Icon(Icons.title, color: Color(0xff2563EB)),
                 ),
               ),
             ),
@@ -376,24 +395,24 @@ class _SendNotificationScreenState extends State<SendNotificationScreen> {
               ),
               child: TextField(
                 controller: bodyController,
-                maxLines: 2,
+                maxLines: 4,
                 decoration: InputDecoration(
                   labelText: "Message Body",
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  prefixIcon: Icon(Icons.message, color: Colors.blue),
+                  prefixIcon: Icon(Icons.message, color: Color(0xff2563EB)),
                 ),
               ),
             ),
 
             // 🔹 Send Message Button
             SizedBox(
-              width: double.infinity,
+              width: 200,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Color(0xff2563EB),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

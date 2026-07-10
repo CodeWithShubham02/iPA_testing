@@ -52,11 +52,12 @@ class _UserLiveLocationScreenState extends State<UserLiveLocationScreen> {
 
   /// 📅 Open Date Picker
   Future<void> pickDate() async {
+    DateTime now = DateTime.now();
     DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      initialDate: now,
+      firstDate: now.subtract(const Duration(days: 2)), // Yesterday
+      lastDate: now, // Today
     );
 
     if (picked != null) {
@@ -129,6 +130,7 @@ class _UserLiveLocationScreenState extends State<UserLiveLocationScreen> {
               selectedItem: selectedUser,
               items: users
                   .where((user) => user.status == "active")
+                  .where((user)=>user.departmentName=="Users")
                   .toList(),
               itemAsString: (UserModel user) =>
               "${user.userid} - ${user.fullName}",

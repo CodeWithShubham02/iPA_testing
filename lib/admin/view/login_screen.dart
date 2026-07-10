@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:confetti/confetti.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -23,7 +25,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  String selectedRole = 'admin';
+  String selectedRole = 'user';
   final UserController userController=UserController();
   final TextEditingController userIdCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
@@ -32,9 +34,11 @@ NotificationService notificationService=NotificationService();
   final TextEditingController userPassword = TextEditingController();
   bool isLoading = false;
   late GoogleSignIn googleSignIn;
+
   @override
   void initState() {
     // TODO: implement initState
+
     super.initState();
     checkLogin1();
     notificationService.requestNotificationPermission();
@@ -287,7 +291,6 @@ NotificationService notificationService=NotificationService();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('cid', data['data']['cid'].toString());
     await prefs.setString('role', 'admin');
-
     if (data['status'] == true) {
       Navigator.pushReplacement(
         context,
@@ -305,6 +308,17 @@ NotificationService notificationService=NotificationService();
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+          elevation: 0,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xff2563EB),
+                  Color(0xff1D4ED8),
+                ],
+              ),
+            ),
+          ),
           backgroundColor: Colors.blue,
           centerTitle: true,
           title: Text("Login",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),)),
@@ -312,6 +326,7 @@ NotificationService notificationService=NotificationService();
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+
             SizedBox(height: 20,),
             /// ROLE DROPDOWN
             DropdownButtonFormField<String>(
@@ -419,7 +434,7 @@ NotificationService notificationService=NotificationService();
             selectedRole=='admin'?ElevatedButton(
               onPressed: isLoading ? null : loginAdmin,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Color(0xff2563EB),
                 foregroundColor: Colors.white,
                 elevation: 5,
                 padding: const EdgeInsets.symmetric(
@@ -440,7 +455,7 @@ NotificationService notificationService=NotificationService();
             ):ElevatedButton(
               onPressed: isLoading ? null : login,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Color(0xff2563EB),
                 foregroundColor: Colors.white,
                 elevation: 5,
                 padding: const EdgeInsets.symmetric(
