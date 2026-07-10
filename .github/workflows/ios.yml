@@ -8,7 +8,7 @@ jobs:
     runs-on: macos-15
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Flutter
@@ -22,25 +22,23 @@ jobs:
       - name: Flutter Doctor
         run: flutter doctor -v
 
-      - name: Clean Project
+      - name: Clean
         run: flutter clean
 
-      - name: Get Packages
+      - name: Pub Get
         run: flutter pub get
 
       - name: Precache iOS
         run: flutter precache --ios
 
-      - name: Show Podfile
+      - name: Print Info.plist
         run: |
-          echo "=============================="
-          echo "Current Directory"
-          pwd
-          echo "=============================="
-          ls -la
-          echo "=============================="
-          ls -la ios
-          echo "=============================="
+          echo "========== INFO.PLIST =========="
+          cat ios/Runner/Info.plist
+
+      - name: Print Podfile
+        run: |
+          echo "========== PODFILE =========="
           cat ios/Podfile
 
       - name: Install CocoaPods
