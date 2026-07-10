@@ -24,13 +24,22 @@ jobs:
 
       - name: Get Packages
         run: flutter pub get
-
+      - name: Debug Podfile
+        run: |
+          echo "===== Current Directory ====="
+          pwd
+          echo "===== ios folder ====="
+          ls -la ios
+          echo "===== Podfile ====="
+          cat ios/Podfile
       - name: Install Pods
         run: |
           cd ios
-          rm -rf Pods Podfile.lock
+          rm -rf Pods
+          rm -rf Podfile.lock
+          pod deintegrate
           pod repo update
-          pod install
+          pod install --repo-update --verbose
 
       - name: Build iOS
         run: flutter build ios --release --no-codesign
