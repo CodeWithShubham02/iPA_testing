@@ -39,7 +39,7 @@ dependencies:
   cloud_firestore:
   get:
   shared_preferences:
-  device_info_plus:
+  device_info_plus: 11.5.0
   uuid:
   geolocator:
   image_picker:
