@@ -5,39 +5,55 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: "3.44.1"
 
       - name: Flutter Version
         run: flutter --version
 
-      - name: Clean
+      - name: Flutter Doctor
+        run: flutter doctor -v
+
+      - name: Clean Project
         run: flutter clean
 
       - name: Get Packages
         run: flutter pub get
-      - name: Debug Podfile
+
+      - name: Precache iOS
+        run: flutter precache --ios
+
+      - name: Show Podfile
         run: |
-          echo "===== Current Directory ====="
+          echo "=============================="
+          echo "Current Directory"
           pwd
-          echo "===== ios folder ====="
+          echo "=============================="
+          ls -la
+          echo "=============================="
           ls -la ios
-          echo "===== Podfile ====="
+          echo "=============================="
           cat ios/Podfile
-      - name: Install Pods
+
+      - name: Install CocoaPods
         run: |
-          cd ios
+          sudo gem install cocoapods
+
+      - name: Install Pods
+        working-directory: ios
+        run: |
+          pod deintegrate || true
           rm -rf Pods
           rm -rf Podfile.lock
-          pod deintegrate
+          rm -rf .symlinks
           pod repo update
           pod install --repo-update --verbose
 
